@@ -25,6 +25,7 @@ mod error;
 mod http;
 mod log;
 mod maps;
+mod models;
 mod server;
 mod ui;
 

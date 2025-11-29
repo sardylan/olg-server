@@ -15,53 +15,9 @@
  *
  */
 
-use serde::{Deserialize, Serialize};
+use crate::models::Gametype;
 use std::fmt::{Display, Formatter};
-use std::str::FromStr;
 use tokio::net::UdpSocket;
-
-#[derive(Serialize, Deserialize, Debug)]
-pub(crate) enum Gametype {
-    FreeForAll,
-    TeamDeathmatch,
-    Domination,
-    SearchAndDestroy,
-    Headquarters,
-    Sabotage,
-}
-
-impl FromStr for Gametype {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Gametype::from_tag(s).ok_or(())
-    }
-}
-
-impl Gametype {
-    pub(crate) fn to_tag(&self) -> &str {
-        match self {
-            Gametype::FreeForAll => "dm",
-            Gametype::TeamDeathmatch => "war",
-            Gametype::Domination => "dom",
-            Gametype::SearchAndDestroy => "sd",
-            Gametype::Headquarters => "koth",
-            Gametype::Sabotage => "sab",
-        }
-    }
-
-    pub(crate) fn from_tag(tag: &str) -> Option<Self> {
-        match tag {
-            "dm" => Some(Gametype::FreeForAll),
-            "war" => Some(Gametype::TeamDeathmatch),
-            "dom" => Some(Gametype::Domination),
-            "sd" => Some(Gametype::SearchAndDestroy),
-            "koth" => Some(Gametype::Headquarters),
-            "sab" => Some(Gametype::Sabotage),
-            _ => None,
-        }
-    }
-}
 
 #[derive(Clone, Debug)]
 pub struct CodServer {

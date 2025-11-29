@@ -17,7 +17,8 @@
 
 use crate::db::{self, DBPool};
 use crate::error::ApiError;
-use crate::server::{CodServer, Gametype};
+use crate::models::Gametype;
+use crate::server::CodServer;
 use actix_web::middleware::Logger;
 use actix_web::web::Data;
 use actix_web::{App, HttpResponse, HttpServer, Responder, web};
