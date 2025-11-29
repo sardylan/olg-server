@@ -1,0 +1,10 @@
+[http.bind]
+host = "::"
+port = 7000
+
+[db]
+host = "localhost"
+port = 5432
+user = "olg"
+password = "olg"
+name = "olg"
