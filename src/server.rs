@@ -42,12 +42,18 @@ impl CodServer {
     }
 
     pub async fn map_restart(&self) -> anyhow::Result<()> {
-        self.rcon("map_restart").await?;
+        let response = self.rcon("map_restart").await?;
+        if !response.starts_with("print\n==== ShutdownGame") {
+            return Err(anyhow::anyhow!("Failed to restart map: {}", response));
+        }
         Ok(())
     }
 
     pub async fn fast_restart(&self) -> anyhow::Result<()> {
-        self.rcon("fast_restart").await?;
+        let response = self.rcon("fast_restart").await?;
+        if !response.starts_with("print\n==== ShutdownGame") {
+            return Err(anyhow::anyhow!("Failed to restart map: {}", response));
+        }
         Ok(())
     }
 
@@ -55,8 +61,13 @@ impl CodServer {
         let cmd = format!("g_gametype {}", gametype.to_tag());
         self.rcon(&cmd).await?;
 
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+
         let cmd = format!("map {}", map);
-        self.rcon(&cmd).await?;
+        let response = self.rcon(&cmd).await?;
+        if !response.starts_with("print\n==== ShutdownGame") {
+            return Err(anyhow::anyhow!("Failed to change map: {}", response));
+        }
 
         Ok(())
     }
@@ -117,7 +128,17 @@ pub(crate) mod tests {
                         let (len, addr) = socket.recv_from(&mut buf).await.unwrap();
                         let payload = &buf[..len];
                         payloads.write().await.push_back(payload.to_vec());
-                        socket.send_to(payload, &addr).await.unwrap();
+                        if payload
+                            .windows(b"test_command".len())
+                            .any(|window| window == b"test_command")
+                        {
+                            socket.send_to(payload, &addr).await.unwrap();
+                            continue;
+                        }
+                        socket
+                            .send_to(b"\xff\xff\xff\xffprint\n==== ShutdownGame", &addr)
+                            .await
+                            .unwrap();
                     }
                 }
             });
