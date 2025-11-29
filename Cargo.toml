@@ -1,10 +1,15 @@
 [package]
 name = "olg-server"
-version = "0.1.0"
+description = "OnLineGaming server backend"
+version = "0.2.0"
 edition = "2024"
 authors = [
     "Luca Cireddu <sardylan@gmail.com>"
 ]
+readme = "README.md"
+license-file = "LICENSE.md"
+repository = "https://github.com/sardylan/olg-server"
+categories = ["web-programming", "network-programming", "database"]
 
 [dependencies]
 actix-web = { version = "4.12.1", features = ["compress-brotli", "compress-gzip", "compress-zstd", "macros", "unicode"] }
