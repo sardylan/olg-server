@@ -4,10 +4,13 @@ version: 2.1
 executors:
   linux-x86_64:
     docker:
-      - image: cimg/rust:1.91
+      - image: cimg/rust
+  base:
+    docker:
+      - image: cimg/base
   github:
     docker:
-      - image: cibuilds/github:0.10
+      - image: cibuilds/github
 
 jobs:
   test:
@@ -25,31 +28,16 @@ jobs:
       - store_test_results:
           path: test-results
   build-linux-x86_64:
-    executor: linux-x86_64
+    executor: base
     steps:
       - checkout
+      - setup_remote_docker
       - run:
-          name: Build
+          name: Build and Push image
           command: |
-            cargo build --release
-            mv target/release/live-qso-map target/release/live_qso_map-linux-x86_64
-      - persist_to_workspace:
-          root: target/release
-          paths:
-            - live_qso_map-linux-x86_64
-  store-artifacts:
-    executor: linux-x86_64
-    steps:
-      - attach_workspace:
-          at: /workspace
-      - store_artifacts:
-          path: /workspace
-  publish-github-release:
-    executor: github
-    steps:
-      - attach_workspace:
-          at: ./workspace
-      - run: ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${CIRCLE_TAG} ./workspace/
+            echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_LOGIN" --password-stdin
+            docker image build --target=prod --tag=sardylan/olg-server:${CIRCLE_TAG} .
+            docker image push sardylan/olg-server:${CIRCLE_TAG}
 
 workflows:
   test_and_build:
@@ -59,16 +47,9 @@ workflows:
             tags:
               only: /^v\d+\.\d+\.\d+$/
       - build-linux-x86_64:
+          context: "Docker Hub"
           requires:
             - test
-          filters:
-            tags:
-              only: /^v\d+\.\d+\.\d+$/
-            branches:
-              ignore: /.*/
-      - store-artifacts:
-          requires:
-            - build-linux-x86_64
           filters:
             tags:
               only: /^v\d+\.\d+\.\d+$/
