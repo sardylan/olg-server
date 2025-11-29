@@ -4,13 +4,10 @@ version: 2.1
 executors:
   linux-x86_64:
     docker:
-      - image: cimg/rust
+      - image: cimg/rust:1.91.1
   base:
     docker:
-      - image: cimg/base
-  github:
-    docker:
-      - image: cibuilds/github
+      - image: cimg/base:current
 
 jobs:
   test:
