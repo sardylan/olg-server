@@ -1,0 +1,76 @@
+---
+version: 2.1
+
+executors:
+  linux-x86_64:
+    docker:
+      - image: cimg/rust:1.82.0
+  github:
+    docker:
+      - image: cibuilds/github:0.10
+
+jobs:
+  test:
+    executor: linux-x86_64
+    steps:
+      - checkout
+      - run:
+          name: Prepare environment
+          command: |
+            cargo install cargo2junit
+            mkdir -p test-results
+      - run:
+          name: Executing tests
+          command: RUSTC_BOOTSTRAP="1" cargo test --no-fail-fast -- -Z unstable-options --format json --report-time | cargo2junit > test-results/test-results.xml
+      - store_test_results:
+          path: test-results
+  build-linux-x86_64:
+    executor: linux-x86_64
+    steps:
+      - checkout
+      - run:
+          name: Build
+          command: |
+            cargo build --release
+            mv target/release/live-qso-map target/release/live_qso_map-linux-x86_64
+      - persist_to_workspace:
+          root: target/release
+          paths:
+            - live_qso_map-linux-x86_64
+  store-artifacts:
+    executor: linux-x86_64
+    steps:
+      - attach_workspace:
+          at: /workspace
+      - store_artifacts:
+          path: /workspace
+  publish-github-release:
+    executor: github
+    steps:
+      - attach_workspace:
+          at: ./workspace
+      - run: ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${CIRCLE_TAG} ./workspace/
+
+workflows:
+  test_and_build:
+    jobs:
+      - test:
+          filters:
+            tags:
+              only: /^v\d+\.\d+\.\d+$/
+      - build-linux-x86_64:
+          requires:
+            - test
+          filters:
+            tags:
+              only: /^v\d+\.\d+\.\d+$/
+            branches:
+              ignore: /.*/
+      - store-artifacts:
+          requires:
+            - build-linux-x86_64
+          filters:
+            tags:
+              only: /^v\d+\.\d+\.\d+$/
+            branches:
+              ignore: /.*/
