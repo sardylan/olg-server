@@ -15,12 +15,9 @@
  *
  */
 
-use serde::Deserialize;
-use std::path::PathBuf;
-use toml::Value;
+use std::env;
 use tracing::{info, instrument};
 
-#[derive(Debug, Deserialize)]
 pub(crate) struct Configuration {
     pub(crate) http_bind_host: String,
     pub(crate) http_bind_port: u16,
@@ -35,71 +32,26 @@ pub(crate) struct Configuration {
 }
 
 #[instrument]
-pub async fn parse(file_path: &PathBuf) -> anyhow::Result<Configuration> {
+pub async fn parse() -> anyhow::Result<Configuration> {
     info!("Loading configuration");
 
-    let file_content = tokio::fs::read_to_string(file_path).await?;
-    let file: Value = toml::from_str(&file_content)?;
-
     Ok(Configuration {
-        http_bind_host: file
-            .get("http")
-            .and_then(|x| x.get("bind"))
-            .and_then(|x| x.get("host"))
-            .and_then(|x| x.as_str())
-            .unwrap_or("::")
-            .to_string(),
-        http_bind_port: file
-            .get("http")
-            .and_then(|x| x.get("bind"))
-            .and_then(|x| x.get("port"))
-            .and_then(|x| x.as_integer())
-            .unwrap_or(7000) as u16,
-        server_host: file
-            .get("server")
-            .and_then(|x| x.get("host"))
-            .and_then(|x| x.as_str())
-            .unwrap_or("127.0.0.1")
-            .to_string(),
-        server_port: file
-            .get("server")
-            .and_then(|x| x.get("port"))
-            .and_then(|x| x.as_integer())
-            .unwrap_or(28960) as u16,
-        server_rconpassword: file
-            .get("server")
-            .and_then(|x| x.get("rconpassword"))
-            .and_then(|x| x.as_str())
-            .unwrap_or("password")
-            .to_string(),
-        db_host: file
-            .get("db")
-            .and_then(|x| x.get("host"))
-            .and_then(|x| x.as_str())
-            .unwrap_or("localhost")
-            .to_string(),
-        db_port: file
-            .get("db")
-            .and_then(|x| x.get("port"))
-            .and_then(|x| x.as_integer())
-            .unwrap_or(5432) as u16,
-        db_user: file
-            .get("db")
-            .and_then(|x| x.get("user"))
-            .and_then(|x| x.as_str())
-            .unwrap_or("postgres")
-            .to_string(),
-        db_password: file
-            .get("db")
-            .and_then(|x| x.get("password"))
-            .and_then(|x| x.as_str())
-            .unwrap_or("password")
-            .to_string(),
-        db_name: file
-            .get("db")
-            .and_then(|x| x.get("name"))
-            .and_then(|x| x.as_str())
-            .unwrap_or("olg")
-            .to_string(),
+        http_bind_host: env::var("HTTP_BIND_HOST").unwrap_or_else(|_| "::".to_string()),
+        http_bind_port: env::var("HTTP_BIND_PORT")
+            .unwrap_or_else(|_| "7000".to_string())
+            .parse::<u16>()?,
+        server_host: env::var("SERVER_HOST").unwrap_or_else(|_| "127.0.0.1".to_string()),
+        server_port: env::var("SERVER_PORT")
+            .unwrap_or_else(|_| "28960".to_string())
+            .parse::<u16>()?,
+        server_rconpassword: env::var("SERVER_RCONPASSWORD")
+            .unwrap_or_else(|_| "127.0.0.1".to_string()),
+        db_host: env::var("DB_HOST").unwrap_or_else(|_| "127.0.0.1".to_string()),
+        db_port: env::var("DB_PORT")
+            .unwrap_or_else(|_| "5432".to_string())
+            .parse::<u16>()?,
+        db_user: env::var("DB_USER").unwrap_or_else(|_| "olg".to_string()),
+        db_password: env::var("DB_PASSWORD").unwrap_or_else(|_| "olg".to_string()),
+        db_name: env::var("DB_NAME").unwrap_or_else(|_| "olg".to_string()),
     })
 }

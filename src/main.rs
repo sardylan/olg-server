@@ -16,10 +16,9 @@
  */
 
 use crate::server::CodServer;
-use clap::FromArgMatches;
-use tracing::info;
+use std::env;
+use tracing::{Level, info};
 
-mod cli;
 mod config;
 mod db;
 mod error;
@@ -33,15 +32,14 @@ mod ui;
 async fn main() -> anyhow::Result<()> {
     ui::header();
 
-    info!("Parsing command line arguments");
-    let matches = cli::generate_matches().get_matches();
-    let cli = cli::Cli::from_arg_matches(&matches)?;
+    let log_level: Level = env::var("LOG_LEVEL")
+        .unwrap_or_default()
+        .parse()
+        .unwrap_or_else(|_| Level::WARN);
+    log::configure(log_level);
 
     info!("Parsing configuration file");
-    let configuration = config::parse(&cli.config_file).await?;
-
-    info!("Configuring logging");
-    log::configure(cli.log_level);
+    let configuration = config::parse().await?;
 
     info!("Creating database pool");
     let db_pool = db::create_pool(
